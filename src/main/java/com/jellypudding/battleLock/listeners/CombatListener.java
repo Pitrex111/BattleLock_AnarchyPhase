@@ -25,18 +25,6 @@ public class CombatListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player victim)) {
-            // Check if the damaged entity is a combat log NPC.
-            CombatLogManager combatLogManager = plugin.getCombatLogManager();
-            if (combatLogManager.isCombatLogNPC(event.getEntity().getEntityId())) {
-                // If it's a killing blow, handle NPC death.
-                if (event.getFinalDamage() >= ((org.bukkit.entity.LivingEntity) event.getEntity()).getHealth()) {
-                    combatLogManager.handleNPCDeath(event.getEntity().getEntityId());
-                }
-            }
-            return;
-        }
-
         // Get the attacker
         Entity damager = event.getDamager();
         Player attacker = null;
@@ -45,7 +33,7 @@ public class CombatListener implements Listener {
         if (damager instanceof Player) {
             attacker = (Player) damager;
         }
-        // Projectile attack (arrows, etc.)
+        // Projectile attack (arrows etc.)
         else if (damager instanceof Projectile) {
             ProjectileSource source = ((Projectile) damager).getShooter();
             if (source instanceof Player) {
@@ -53,7 +41,20 @@ public class CombatListener implements Listener {
             }
         }
 
-        // If it's PvP combat, tag both players
+        if (!(event.getEntity() instanceof Player victim)) {
+            // Check if the damaged entity is a combat log NPC.
+            CombatLogManager combatLogManager = plugin.getCombatLogManager();
+            if (combatLogManager.isCombatLogNPC(event.getEntity().getEntityId())) {
+                // If it's a killing blow handle NPC death.
+                if (event.getFinalDamage() >= ((org.bukkit.entity.LivingEntity) event.getEntity()).getHealth()) {
+                    String killerName = attacker != null ? attacker.getName() : null;
+                    combatLogManager.handleNPCDeath(event.getEntity().getEntityId(), killerName);
+                }
+            }
+            return;
+        }
+
+        // If it's PvP combat tag both players
         if (attacker != null && !attacker.equals(victim)) {
             combatManager.tagPlayer(victim);
             combatManager.tagPlayer(attacker);
@@ -62,7 +63,7 @@ public class CombatListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityDeath(EntityDeathEvent event) {
-        // If a player dies, remove their combat tag
+        // If a player dies remove their combat tag
         if (event.getEntity() instanceof Player player) {
             combatManager.untagPlayer(player);
         }
@@ -70,7 +71,13 @@ public class CombatListener implements Listener {
         // Check if a combat log NPC was killed.
         CombatLogManager combatLogManager = plugin.getCombatLogManager();
         if (combatLogManager.isCombatLogNPC(event.getEntity().getEntityId())) {
-            combatLogManager.handleNPCDeath(event.getEntity().getEntityId());
+            // Try to get the killer from the last damage cause
+            String killerName = null;
+            Player killer = event.getEntity().getKiller();
+            if (killer != null) {
+                killerName = killer.getName();
+            }
+            combatLogManager.handleNPCDeath(event.getEntity().getEntityId(), killerName);
         }
     }
 }

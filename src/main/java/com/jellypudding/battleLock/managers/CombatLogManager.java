@@ -14,6 +14,7 @@ import org.bukkit.potion.PotionEffectType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -91,7 +92,7 @@ public class CombatLogManager {
         npcLocations.put(playerId, npc.getLocation());
 
         // Schedule NPC removal and store the task ID
-        int taskId = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> removeCombatLogNPC(playerId, false), logoutDespawnTime);
+        int taskId = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> removeCombatLogNPC(playerId, false, null), logoutDespawnTime);
         scheduledTasks.put(playerId, taskId);
 
         plugin.getLogger().info(player.getName() + " logged out during combat! Created NPC at " +
@@ -103,8 +104,9 @@ public class CombatLogManager {
      *
      * @param playerId The UUID of the player whose NPC should be removed
      * @param died Whether the NPC died (true) or despawned naturally (false)
+     * @param killerName The name of the player who killed the NPC (null if environmental or despawned)
      */
-    public void removeCombatLogNPC(UUID playerId, boolean died) {
+    public void removeCombatLogNPC(UUID playerId, boolean died, String killerName) {
         if (!combatLogNPCs.containsKey(playerId)) {
             return;
         }
@@ -145,6 +147,24 @@ public class CombatLogManager {
 
             // Mark in persistent storage that this player's NPC was killed
             dataManager.markNpcKilled(playerId);
+
+            String playerName = Bukkit.getOfflinePlayer(playerId).getName();
+            if (plugin.isDiscordRelayAPIReady()) {
+                String message;
+                Color color;
+                if (killerName != null) {
+                    message = playerName + "'s combat log NPC was killed by " + killerName + ". They have lost their items.";
+                    color = Color.RED;
+                } else {
+                    message = playerName + "'s combat log NPC died. They have lost their items.";
+                    color = Color.ORANGE;
+                }
+                com.jellypudding.discordRelay.DiscordRelayAPI.sendFormattedMessage(
+                    "Combat Log Kill",
+                    message,
+                    color
+                );
+            }
         }
 
         // Remove entity if it still exists
@@ -177,7 +197,7 @@ public class CombatLogManager {
         // Check for active NPC in current session
         if (combatLogNPCs.containsKey(playerId)) {
             boolean wasKilled = !playerInventories.containsKey(playerId);
-            removeCombatLogNPC(playerId, false);
+            removeCombatLogNPC(playerId, false, null);
 
             if (wasKilled) {
                 // NPC was killed, ensure inventory is cleared and remove combat tag.
@@ -221,8 +241,9 @@ public class CombatLogManager {
      * Handle an NPC being damaged or killed
      *
      * @param entityId The entity ID of the NPC
+     * @param killerName The name of the player who killed the NPC (null if environmental)
      */
-    public void handleNPCDeath(int entityId) {
+    public void handleNPCDeath(int entityId, String killerName) {
         if (!entityPlayerMap.containsKey(entityId)) {
             return;
         }
@@ -234,7 +255,7 @@ public class CombatLogManager {
             return; // Already being processed
         }
 
-        removeCombatLogNPC(playerId, true);
+        removeCombatLogNPC(playerId, true, killerName);
     }
 
     /**
@@ -248,7 +269,7 @@ public class CombatLogManager {
 
         // Create a copy to avoid ConcurrentModificationException
         for (UUID playerId : new HashMap<>(combatLogNPCs).keySet()) {
-            removeCombatLogNPC(playerId, false);
+            removeCombatLogNPC(playerId, false, null);
         }
 
         // Clear all tracking data

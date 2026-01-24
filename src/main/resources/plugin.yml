@@ -5,3 +5,4 @@ api-version: '1.21'
 description: "Prevents commands during PVP and punishes combat logging"
 author: AlphaAlex115
 website: www.minecraftoffline.net
+softdepend: [DiscordRelay]

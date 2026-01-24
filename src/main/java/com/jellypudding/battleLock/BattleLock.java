@@ -13,6 +13,7 @@ public final class BattleLock extends JavaPlugin {
     private CombatManager combatManager;
     private CombatLogManager combatLogManager;
     private DataManager dataManager;
+    private boolean discordRelayAPIReady = false;
 
     @Override
     public void onEnable() {
@@ -25,6 +26,26 @@ public final class BattleLock extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CombatListener(this, combatManager), this);
         getServer().getPluginManager().registerEvents(new CommandListener(this, combatManager), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(this, combatManager, combatLogManager), this);
+
+        // Check for DiscordRelay integration
+        if (getServer().getPluginManager().isPluginEnabled("DiscordRelay")) {
+            try {
+                this.discordRelayAPIReady = com.jellypudding.discordRelay.DiscordRelayAPI.isReady();
+                if (this.discordRelayAPIReady) {
+                    getLogger().info("Successfully hooked into DiscordRelay.");
+                } else {
+                    getLogger().warning("DiscordRelay is loaded, but its API reported not ready (check DiscordRelay config/status).");
+                }
+            } catch (NoClassDefFoundError e) {
+                getLogger().severe("DiscordRelay plugin found, but its API class (DiscordRelayAPI) is incompatible or missing.");
+                this.discordRelayAPIReady = false;
+            } catch (Exception e) {
+                getLogger().log(java.util.logging.Level.SEVERE, "An unexpected error occurred while checking DiscordRelay API.", e);
+                this.discordRelayAPIReady = false;
+            }
+        } else {
+            getLogger().info("DiscordRelay plugin not found. Discord integration disabled.");
+        }
 
         // Initialise bStats
         int pluginId = 27551;
@@ -52,5 +73,9 @@ public final class BattleLock extends JavaPlugin {
     
     public DataManager getDataManager() {
         return dataManager;
+    }
+
+    public boolean isDiscordRelayAPIReady() {
+        return discordRelayAPIReady;
     }
 }

@@ -32,7 +32,7 @@ public final class BattleLock extends JavaPlugin {
         getServer().getPluginManager().registerEvents(combatListener, this);
         playerListener = new PlayerListener(this, combatManager, combatLogManager);
         getServer().getPluginManager().registerEvents(playerListener, this);
-        messageTimer.runTaskTimer(this, 0, 15);
+        messageTimer.runTaskTimer(this, 0, 10);
 
         getLogger().info("BattleLock has been enabled! Combat logging protection is now active.");
     }

@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +56,7 @@ public class CombatManager {
         if (taggedPlayers.containsKey(playerId)) {
             taggedPlayers.remove(playerId);
             Bukkit.getPluginManager().callEvent(new CombatTagEvent(player, CombatTagEvent.TagStatus.UNTAGGED));
-            player.sendActionBar(Component.text("No loneger in combat!").color(NamedTextColor.GREEN));
+            player.sendActionBar(Component.text("No longer in combat!").color(NamedTextColor.GREEN));
         }
     }
 
@@ -89,7 +90,7 @@ public class CombatManager {
         UUID playerId = player.getUniqueId();
 
         if (!taggedPlayers.containsKey(playerId)) {
-            return 0;
+            return -1;
         }
 
         long expireTime = taggedPlayers.get(playerId);
@@ -97,7 +98,7 @@ public class CombatManager {
 
         if (currentTime > expireTime) {
             untagPlayer(player);
-            return 0;
+            return -1;
         }
 
         return (int) ((expireTime - currentTime) / 1000);

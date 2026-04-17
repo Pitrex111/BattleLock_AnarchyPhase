@@ -232,8 +232,11 @@ public class CombatLogManager {
         if (dataManager.wasNpcKilled(playerId)) {
             // NPC was killed in a previous session, clear their inventory
             player.getInventory().clear();
+            player.setHealth(0.0);
             combatManager.untagPlayer(player);
-            player.sendMessage(Component.text("Your combat log NPC was killed while you were offline. You have lost your items.", NamedTextColor.RED));
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    player.sendMessage(Component.text("Your combat log NPC was killed while you were offline. You have lost your items.", NamedTextColor.RED));
+                }, 20);
 
             // Remove the record now that it's been processed
             dataManager.removeKilledNpcRecord(playerId);

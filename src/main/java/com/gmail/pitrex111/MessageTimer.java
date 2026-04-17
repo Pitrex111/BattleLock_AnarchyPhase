@@ -28,7 +28,9 @@ public class MessageTimer extends BukkitRunnable {
             Player player = root.getServer().getPlayer(u);
             if (player != null && combatManager.isPlayerTagged(player))
             {
-                player.sendActionBar(Component.text("Combat: " + combatManager.getTimeUntilTagExpires(player) + " s.").color(NamedTextColor.YELLOW));
+                int time = combatManager.getTimeUntilTagExpires(player);
+                if (time < 0) continue;
+                player.sendActionBar(Component.text("Combat: " + time + " s.").color(NamedTextColor.YELLOW));
             }
         }
     }

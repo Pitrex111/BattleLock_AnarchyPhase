@@ -204,8 +204,11 @@ public class CombatLogManager {
             if (wasKilled) {
                 // NPC was killed, ensure inventory is cleared and remove combat tag.
                 player.getInventory().clear();
+                player.setHealth(0.0);
                 combatManager.untagPlayer(player);
-                player.sendMessage(Component.text("Your combat log NPC was killed while you were offline. You have lost your items.", NamedTextColor.RED));
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    player.sendMessage(Component.text("Your combat log NPC was killed while you were offline. You have lost your items.", NamedTextColor.RED));
+                }, 20);
                 plugin.getLogger().info(player.getName() + " lost items due to a killed combat log NPC.");
             } else {
                 // NPC survived, return inventory only if we have it stored.

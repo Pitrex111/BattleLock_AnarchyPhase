@@ -1,20 +1,23 @@
 package com.jellypudding.battleLock.managers;
 
 import com.jellypudding.battleLock.BattleLock;
+
+import io.papermc.paper.datacomponent.item.ResolvableProfile;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -48,6 +51,19 @@ public class CombatLogManager {
         this.combatLogKey = new NamespacedKey(plugin, "combat_log_player_id");
     }
 
+    private ItemStack addVanishing(ItemStack item)
+    {
+        if (item == null) return new ItemStack(Material.AIR);
+        ItemStack ret = item.clone();
+        if (ret.hasItemMeta())
+        {
+            ItemMeta meta = ret.getItemMeta();
+            meta.addEnchant(Enchantment.VANISHING_CURSE, 1, true);
+            ret.setItemMeta(meta);
+        }
+        return ret;
+    }
+
     /**
      * Create a combat log NPC when a player logs out during combat
      *
@@ -74,16 +90,20 @@ public class CombatLogManager {
         playerInventories.put(playerId, inventory);
 
         // Create an NPC at the player's location
-        Villager npc = (Villager) location.getWorld().spawnEntity(location, EntityType.VILLAGER);
+        Mannequin npc = (Mannequin) location.getWorld().spawnEntity(location, EntityType.MANNEQUIN);
 
         // Setup the NPC with player data
+        npc.setProfile(ResolvableProfile.resolvableProfile(player.getPlayerProfile()));
         npc.customName(player.displayName());
         npc.setCustomNameVisible(true);
-        npc.setAI(false);
         npc.setInvulnerable(false);
-        npc.setSilent(true);
         npc.setHealth(Math.min(player.getHealth(), 20.0));
-        npc.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, Integer.MAX_VALUE, 10, false, false));
+        npc.getEquipment().setItemInMainHand(addVanishing(player.getEquipment().getItemInMainHand()));
+        npc.getEquipment().setItemInOffHand(addVanishing(player.getEquipment().getItemInOffHand()));
+        npc.getEquipment().setHelmet(addVanishing(player.getEquipment().getHelmet()));
+        npc.getEquipment().setChestplate(addVanishing(player.getEquipment().getChestplate()));
+        npc.getEquipment().setLeggings(addVanishing(player.getEquipment().getLeggings()));
+        npc.getEquipment().setBoots(addVanishing(player.getEquipment().getBoots()));
         npc.getPersistentDataContainer().set(combatLogKey, PersistentDataType.STRING, playerId.toString());
 
         // Register the NPC
@@ -147,24 +167,6 @@ public class CombatLogManager {
 
             // Mark in persistent storage that this player's NPC was killed
             dataManager.markNpcKilled(playerId);
-
-            String playerName = Bukkit.getOfflinePlayer(playerId).getName();
-            if (plugin.isDiscordRelayAPIReady()) {
-                String message;
-                Color color;
-                if (killerName != null) {
-                    message = playerName + "'s combat log NPC was killed by " + killerName + ". They have lost their items.";
-                    color = Color.RED;
-                } else {
-                    message = playerName + "'s combat log NPC died. They have lost their items.";
-                    color = Color.ORANGE;
-                }
-                com.jellypudding.discordRelay.DiscordRelayAPI.sendFormattedMessage(
-                    "Combat Log Kill",
-                    message,
-                    color
-                );
-            }
         }
 
         // Remove entity if it still exists

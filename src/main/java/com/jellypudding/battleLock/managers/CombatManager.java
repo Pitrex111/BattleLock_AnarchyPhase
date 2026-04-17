@@ -1,24 +1,35 @@
 package com.jellypudding.battleLock.managers;
 
+import com.gmail.pitrex111.CombatTagEvent;
 import com.jellypudding.battleLock.BattleLock;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public class CombatManager {
 
-    private final BattleLock plugin;
     private final Map<UUID, Long> taggedPlayers;
     private final int combatTagDuration;
 
     public CombatManager(BattleLock plugin) {
-        this.plugin = plugin;
         this.taggedPlayers = new HashMap<>();
         this.combatTagDuration = plugin.getConfig().getInt("combat-tag-duration", 15) * 1000; // Convert to milliseconds
+    }
+
+    public List<UUID> getTaggedPlayers()
+    {
+        LinkedList<UUID> ret = new LinkedList<>();
+        taggedPlayers.forEach((u, l) -> ret.add(u));
+        return ret;
     }
 
     /**
@@ -28,13 +39,10 @@ public class CombatManager {
      */
     public void tagPlayer(Player player) {
         UUID playerId = player.getUniqueId();
-        boolean wasTagged = isPlayerTagged(player);
 
         taggedPlayers.put(playerId, System.currentTimeMillis() + combatTagDuration);
-
-        if (!wasTagged) {
-            player.sendMessage(Component.text("You are now in combat! Do not log out or you will be punished!", NamedTextColor.RED));
-        }
+        Bukkit.getPluginManager().callEvent(new CombatTagEvent(player, CombatTagEvent.TagStatus.TAGGED));
+        player.sendActionBar(Component.text("No loneger in combat!").color(NamedTextColor.GREEN));
     }
 
     /**
@@ -47,7 +55,7 @@ public class CombatManager {
 
         if (taggedPlayers.containsKey(playerId)) {
             taggedPlayers.remove(playerId);
-            player.sendMessage(Component.text("You are no longer in combat. You may now log out safely.", NamedTextColor.GREEN));
+            Bukkit.getPluginManager().callEvent(new CombatTagEvent(player, CombatTagEvent.TagStatus.UNTAGGED));
         }
     }
 
@@ -66,11 +74,7 @@ public class CombatManager {
 
         long expireTime = taggedPlayers.get(playerId);
 
-        if (System.currentTimeMillis() > expireTime) {
-            taggedPlayers.remove(playerId);
-            player.sendMessage(Component.text("You are no longer in combat. You may now log out safely.", NamedTextColor.GREEN));
-            return false;
-        }
+        if (System.currentTimeMillis() > expireTime) untagPlayer(player);
 
         return true;
     }
@@ -92,7 +96,7 @@ public class CombatManager {
         long currentTime = System.currentTimeMillis();
 
         if (currentTime > expireTime) {
-            taggedPlayers.remove(playerId);
+            untagPlayer(player);
             return 0;
         }
 

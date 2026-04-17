@@ -42,7 +42,6 @@ public class CombatManager {
 
         taggedPlayers.put(playerId, System.currentTimeMillis() + combatTagDuration);
         Bukkit.getPluginManager().callEvent(new CombatTagEvent(player, CombatTagEvent.TagStatus.TAGGED));
-        player.sendActionBar(Component.text("No loneger in combat!").color(NamedTextColor.GREEN));
     }
 
     /**
@@ -56,6 +55,7 @@ public class CombatManager {
         if (taggedPlayers.containsKey(playerId)) {
             taggedPlayers.remove(playerId);
             Bukkit.getPluginManager().callEvent(new CombatTagEvent(player, CombatTagEvent.TagStatus.UNTAGGED));
+            player.sendActionBar(Component.text("No loneger in combat!").color(NamedTextColor.GREEN));
         }
     }
 

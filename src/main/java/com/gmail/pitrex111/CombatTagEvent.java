@@ -34,11 +34,15 @@ public class CombatTagEvent extends PlayerEvent{
         return status == TagStatus.UNTAGGED;
     }
 
-    private static final HandlerList HANDLERS = new HandlerList();
+    private static final HandlerList HANDLER_LIST = new HandlerList();
+
+    public static HandlerList getHandlerList() {
+        return HANDLER_LIST;
+    }
 
     @Override
-    public @NotNull HandlerList getHandlers() {
-        return HANDLERS;
+    public HandlerList getHandlers() {
+        return HANDLER_LIST;
     }
 
 }
